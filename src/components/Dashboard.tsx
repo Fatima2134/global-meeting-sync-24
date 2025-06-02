@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import WorldClock from './WorldClock';
@@ -26,6 +27,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userEmail, onLogout }) => {
   };
 
   const handleDateClick = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    
+    // Prevent scheduling on past dates
+    if (date < today) {
+      return;
+    }
+    
     setSelectedDate(date);
     setShowAppointmentModal(true);
   };
@@ -43,19 +53,40 @@ const Dashboard: React.FC<DashboardProps> = ({ userEmail, onLogout }) => {
         <Sidebar onNavigateToMeetings={() => navigate('/meetings')} />
         
         <main className="flex-1 p-6 ml-64">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <WorldClock 
-              selectedTimezones={selectedTimezones}
-              onTimezoneChange={handleTimezoneChange}
-              primaryTimezone={primaryTimezone}
-            />
-            
-            <Calendar
-              selectedTimezones={selectedTimezones}
-              primaryTimezone={primaryTimezone}
-              appointments={appointments}
-              onDateClick={handleDateClick}
-            />
+          <div className="max-w-7xl mx-auto">
+            <Tabs defaultValue="worldclock" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 bg-white">
+                <TabsTrigger 
+                  value="worldclock" 
+                  className="text-gray-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                >
+                  World Clock
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="calendar" 
+                  className="text-gray-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                >
+                  Calendar
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="worldclock">
+                <WorldClock 
+                  selectedTimezones={selectedTimezones}
+                  onTimezoneChange={handleTimezoneChange}
+                  primaryTimezone={primaryTimezone}
+                />
+              </TabsContent>
+              
+              <TabsContent value="calendar">
+                <Calendar
+                  selectedTimezones={selectedTimezones}
+                  primaryTimezone={primaryTimezone}
+                  appointments={appointments}
+                  onDateClick={handleDateClick}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>

@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { X, Clock, Users } from 'lucide-react';
+import { X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -44,17 +43,28 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     onCreateAppointment(appointment);
   };
 
-  const getTimeInTimezone = (time: string, timezone: string) => {
+  const getWorkingHoursInTimezone = (time: string, timezone: string) => {
     const [hours, minutes] = time.split(':').map(Number);
     const appointmentDate = new Date(date);
     appointmentDate.setHours(hours, minutes, 0, 0);
     
-    return appointmentDate.toLocaleTimeString('en-US', {
+    const timeInTimezone = appointmentDate.toLocaleTimeString('en-US', {
       timeZone: timezone,
       hour12: true,
       hour: '2-digit',
       minute: '2-digit'
     });
+
+    // Check if time falls within working hours (9 AM - 5 PM)
+    const hour24 = parseInt(appointmentDate.toLocaleTimeString('en-US', {
+      timeZone: timezone,
+      hour12: false,
+      hour: '2-digit'
+    }));
+
+    const isWorkingHours = hour24 >= 9 && hour24 < 17;
+    
+    return { time: timeInTimezone, isWorkingHours };
   };
 
   const getCityName = (timezone: string) => {
@@ -176,22 +186,31 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
             />
           </div>
 
-          {selectedTimezones.length > 1 && (
+          {selectedTimezones.length > 0 && (
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="font-medium text-gray-900 mb-2 flex items-center">
                 <Clock className="h-4 w-4 mr-2 text-blue-600" />
                 Meeting Times Across Time Zones
               </h3>
               <div className="space-y-1">
-                {selectedTimezones.map(timezone => (
-                  <div key={timezone} className="flex justify-between text-sm">
-                    <span className="text-gray-700">{getCityName(timezone)}</span>
-                    <span className="font-mono text-gray-900">
-                      {getTimeInTimezone(time, timezone)}
-                    </span>
-                  </div>
-                ))}
+                {selectedTimezones.map(timezone => {
+                  const { time: timezoneTime, isWorkingHours } = getWorkingHoursInTimezone(time, timezone);
+                  return (
+                    <div key={timezone} className="flex justify-between text-sm">
+                      <span className="text-gray-700">{getCityName(timezone)}</span>
+                      <span className={`font-mono ${isWorkingHours ? 'text-green-700' : 'text-orange-600'}`}>
+                        {timezoneTime}
+                        {!isWorkingHours && ' (Outside 9-5)'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
+              {selectedTimezones.some(tz => !getWorkingHoursInTimezone(time, tz).isWorkingHours) && (
+                <p className="text-xs text-orange-600 mt-2">
+                  Note: Some attendees will be outside normal working hours (9 AM - 5 PM)
+                </p>
+              )}
             </div>
           )}
 

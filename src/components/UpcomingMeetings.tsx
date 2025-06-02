@@ -14,12 +14,12 @@ interface UpcomingMeetingsProps {
 const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ userEmail, onLogout }) => {
   const navigate = useNavigate();
 
-  // Sample meetings data
-  const meetings = [
+  // Sample meetings data - in real app, this would come from appointments state
+  const allMeetings = [
     {
       id: 1,
       title: 'Weekly Team Sync',
-      date: '2024-01-15',
+      date: '2025-01-15',
       time: '10:00',
       duration: 60,
       attendees: ['john@example.com', 'jane@example.com'],
@@ -29,7 +29,7 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ userEmail, onLogout
     {
       id: 2,
       title: 'Project Review',
-      date: '2024-01-16',
+      date: '2025-01-16',
       time: '14:30',
       duration: 90,
       attendees: ['manager@example.com', 'dev@example.com'],
@@ -39,14 +39,34 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ userEmail, onLogout
     {
       id: 3,
       title: 'Client Presentation',
-      date: '2024-01-18',
+      date: '2025-01-18',
       time: '09:00',
       duration: 120,
       attendees: ['client@example.com', 'sales@example.com'],
       timezone: 'Asia/Tokyo',
       description: 'Product demonstration for new client'
+    },
+    {
+      id: 4,
+      title: 'Past Meeting',
+      date: '2024-12-01',
+      time: '15:00',
+      duration: 60,
+      attendees: ['past@example.com'],
+      timezone: 'America/New_York',
+      description: 'This meeting is in the past and should not show'
     }
   ];
+
+  // Filter meetings to only show future meetings
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const upcomingMeetings = allMeetings.filter(meeting => {
+    const meetingDate = new Date(meeting.date);
+    meetingDate.setHours(0, 0, 0, 0);
+    return meetingDate >= today;
+  });
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -116,7 +136,7 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ userEmail, onLogout
         </div>
 
         <div className="space-y-4">
-          {meetings.map(meeting => (
+          {upcomingMeetings.map(meeting => (
             <Card key={meeting.id} className="bg-white border border-gray-200">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between text-gray-900">
@@ -177,7 +197,7 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ userEmail, onLogout
             </Card>
           ))}
           
-          {meetings.length === 0 && (
+          {upcomingMeetings.length === 0 && (
             <Card className="bg-white border border-gray-200">
               <CardContent className="text-center py-12">
                 <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />

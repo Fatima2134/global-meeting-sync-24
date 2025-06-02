@@ -14,19 +14,47 @@ interface WorldClockProps {
 const WORLD_CITIES = [
   { name: 'New York', timezone: 'America/New_York' },
   { name: 'Los Angeles', timezone: 'America/Los_Angeles' },
+  { name: 'Chicago', timezone: 'America/Chicago' },
+  { name: 'Denver', timezone: 'America/Denver' },
+  { name: 'Toronto', timezone: 'America/Toronto' },
+  { name: 'Vancouver', timezone: 'America/Vancouver' },
+  { name: 'Mexico City', timezone: 'America/Mexico_City' },
+  { name: 'São Paulo', timezone: 'America/Sao_Paulo' },
+  { name: 'Buenos Aires', timezone: 'America/Argentina/Buenos_Aires' },
   { name: 'London', timezone: 'Europe/London' },
   { name: 'Paris', timezone: 'Europe/Paris' },
+  { name: 'Berlin', timezone: 'Europe/Berlin' },
+  { name: 'Rome', timezone: 'Europe/Rome' },
+  { name: 'Madrid', timezone: 'Europe/Madrid' },
+  { name: 'Amsterdam', timezone: 'Europe/Amsterdam' },
+  { name: 'Stockholm', timezone: 'Europe/Stockholm' },
+  { name: 'Moscow', timezone: 'Europe/Moscow' },
+  { name: 'Istanbul', timezone: 'Europe/Istanbul' },
+  { name: 'Cairo', timezone: 'Africa/Cairo' },
+  { name: 'Johannesburg', timezone: 'Africa/Johannesburg' },
+  { name: 'Lagos', timezone: 'Africa/Lagos' },
+  { name: 'Nairobi', timezone: 'Africa/Nairobi' },
+  { name: 'Dubai', timezone: 'Asia/Dubai' },
+  { name: 'Riyadh', timezone: 'Asia/Riyadh' },
+  { name: 'Mumbai', timezone: 'Asia/Kolkata' },
+  { name: 'Delhi', timezone: 'Asia/Kolkata' },
+  { name: 'Bangkok', timezone: 'Asia/Bangkok' },
+  { name: 'Jakarta', timezone: 'Asia/Jakarta' },
+  { name: 'Singapore', timezone: 'Asia/Singapore' },
+  { name: 'Kuala Lumpur', timezone: 'Asia/Kuala_Lumpur' },
+  { name: 'Manila', timezone: 'Asia/Manila' },
+  { name: 'Hong Kong', timezone: 'Asia/Hong_Kong' },
+  { name: 'Shanghai', timezone: 'Asia/Shanghai' },
+  { name: 'Beijing', timezone: 'Asia/Shanghai' },
+  { name: 'Seoul', timezone: 'Asia/Seoul' },
   { name: 'Tokyo', timezone: 'Asia/Tokyo' },
   { name: 'Sydney', timezone: 'Australia/Sydney' },
-  { name: 'Mumbai', timezone: 'Asia/Kolkata' },
-  { name: 'Dubai', timezone: 'Asia/Dubai' },
-  { name: 'Singapore', timezone: 'Asia/Singapore' },
-  { name: 'Hong Kong', timezone: 'Asia/Hong_Kong' },
-  { name: 'Berlin', timezone: 'Europe/Berlin' },
-  { name: 'Moscow', timezone: 'Europe/Moscow' },
-  { name: 'São Paulo', timezone: 'America/Sao_Paulo' },
-  { name: 'Toronto', timezone: 'America/Toronto' },
-  { name: 'Chicago', timezone: 'America/Chicago' },
+  { name: 'Melbourne', timezone: 'Australia/Melbourne' },
+  { name: 'Brisbane', timezone: 'Australia/Brisbane' },
+  { name: 'Perth', timezone: 'Australia/Perth' },
+  { name: 'Auckland', timezone: 'Pacific/Auckland' },
+  { name: 'Fiji', timezone: 'Pacific/Fiji' },
+  { name: 'Honolulu', timezone: 'Pacific/Honolulu' },
 ];
 
 const WorldClock: React.FC<WorldClockProps> = ({ 
@@ -154,7 +182,7 @@ const WorldClock: React.FC<WorldClockProps> = ({
               <SelectTrigger className="w-full bg-white text-gray-900">
                 <SelectValue placeholder="Add another timezone (max 3)" />
               </SelectTrigger>
-              <SelectContent className="bg-white">
+              <SelectContent className="bg-white max-h-60">
                 {WORLD_CITIES
                   .filter(city => !selectedTimezones.includes(city.timezone))
                   .map(city => (
@@ -170,7 +198,7 @@ const WorldClock: React.FC<WorldClockProps> = ({
             </Select>
           </div>
         )}
-      </CardContent>
+      </SelectContent>
     </Card>
   );
 };

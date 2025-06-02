@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,12 +36,50 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
       date: date.toISOString().split('T')[0],
       time,
       duration: parseInt(duration),
-      attendees: attendees.split(',').map(email => email.trim()),
+      attendees: attendees.split(',').map(email => email.trim()).filter(email => email),
       timezone: primaryTimezone,
       allTimezones: selectedTimezones
     };
 
     onCreateAppointment(appointment);
+  };
+
+  const getCommonWorkingHours = () => {
+    if (selectedTimezones.length === 1) {
+      return { start: 9, end: 17, hasOverlap: true };
+    }
+
+    // Calculate working hours overlap (9 AM - 5 PM) across all timezones
+    let overlapStart = 0;
+    let overlapEnd = 24;
+    let hasOverlap = true;
+
+    for (const timezone of selectedTimezones) {
+      // Create a test date to get timezone offset
+      const testDate = new Date(date);
+      testDate.setHours(12, 0, 0, 0);
+      
+      // Get UTC offset for this timezone
+      const utcTime = testDate.getTime();
+      const timezoneTime = new Date(testDate.toLocaleString('en-US', { timeZone: timezone }));
+      const offsetHours = (utcTime - timezoneTime.getTime()) / (1000 * 60 * 60);
+      
+      // Convert working hours to primary timezone
+      const localStart = 9 - offsetHours;
+      const localEnd = 17 - offsetHours;
+      
+      // Find overlap
+      overlapStart = Math.max(overlapStart, localStart);
+      overlapEnd = Math.min(overlapEnd, localEnd);
+    }
+
+    hasOverlap = overlapStart < overlapEnd;
+    
+    return {
+      start: Math.max(0, Math.ceil(overlapStart)),
+      end: Math.min(24, Math.floor(overlapEnd)),
+      hasOverlap
+    };
   };
 
   const getWorkingHoursInTimezone = (time: string, timezone: string) => {
@@ -87,6 +126,8 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     };
     return cities[timezone as keyof typeof cities] || timezone;
   };
+
+  const commonHours = getCommonWorkingHours();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -186,12 +227,35 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
             />
           </div>
 
-          {selectedTimezones.length > 0 && (
+          {selectedTimezones.length > 1 && (
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="font-medium text-gray-900 mb-2 flex items-center">
                 <Clock className="h-4 w-4 mr-2 text-blue-600" />
-                Meeting Times Across Time Zones
+                Common Working Hours & Meeting Times
               </h3>
+              
+              {commonHours.hasOverlap && (
+                <div className="mb-3 p-2 bg-green-50 rounded border border-green-200">
+                  <p className="text-sm text-green-700 font-medium">
+                    Optimal meeting window: {commonHours.start}:00 - {commonHours.end}:00 ({getCityName(primaryTimezone)})
+                  </p>
+                  <p className="text-xs text-green-600">
+                    This time range ensures all participants are within working hours (9 AM - 5 PM)
+                  </p>
+                </div>
+              )}
+              
+              {!commonHours.hasOverlap && (
+                <div className="mb-3 p-2 bg-orange-50 rounded border border-orange-200">
+                  <p className="text-sm text-orange-700 font-medium">
+                    No common working hours found across all timezones
+                  </p>
+                  <p className="text-xs text-orange-600">
+                    Some participants will be outside normal business hours
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-1">
                 {selectedTimezones.map(timezone => {
                   const { time: timezoneTime, isWorkingHours } = getWorkingHoursInTimezone(time, timezone);
@@ -206,11 +270,6 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
                   );
                 })}
               </div>
-              {selectedTimezones.some(tz => !getWorkingHoursInTimezone(time, tz).isWorkingHours) && (
-                <p className="text-xs text-orange-600 mt-2">
-                  Note: Some attendees will be outside normal working hours (9 AM - 5 PM)
-                </p>
-              )}
             </div>
           )}
 

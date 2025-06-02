@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AuthPageProps {
-  onLogin: (email: string) => void;
+  onLogin: (email: string, isSignUp?: boolean) => boolean;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
@@ -24,8 +24,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
       return;
     }
 
-    // Simulate authentication
-    onLogin(email);
+    const success = onLogin(email, !isLogin);
+    if (!success && isLogin) {
+      // Login failed, suggest signing up
+      setIsLogin(false);
+    }
   };
 
   return (

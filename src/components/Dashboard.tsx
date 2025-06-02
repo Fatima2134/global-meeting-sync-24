@@ -11,14 +11,20 @@ import AppointmentModal from './AppointmentModal';
 interface DashboardProps {
   userEmail: string;
   onLogout: () => void;
+  appointments: any[];
+  onCreateAppointment: (appointment: any) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ userEmail, onLogout }) => {
+const Dashboard: React.FC<DashboardProps> = ({ 
+  userEmail, 
+  onLogout, 
+  appointments, 
+  onCreateAppointment 
+}) => {
   const [selectedTimezones, setSelectedTimezones] = useState<string[]>(['America/New_York']);
   const [primaryTimezone, setPrimaryTimezone] = useState('America/New_York');
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [appointments, setAppointments] = useState<any[]>([]);
   const navigate = useNavigate();
 
   const handleTimezoneChange = (timezones: string[], primary: string) => {
@@ -41,7 +47,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userEmail, onLogout }) => {
   };
 
   const handleCreateAppointment = (appointment: any) => {
-    setAppointments([...appointments, { ...appointment, id: Date.now() }]);
+    onCreateAppointment(appointment);
     setShowAppointmentModal(false);
   };
 

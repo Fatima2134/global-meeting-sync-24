@@ -9,60 +9,21 @@ import Header from './Header';
 interface UpcomingMeetingsProps {
   userEmail: string;
   onLogout: () => void;
+  appointments: any[];
 }
 
-const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ userEmail, onLogout }) => {
+const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ 
+  userEmail, 
+  onLogout, 
+  appointments 
+}) => {
   const navigate = useNavigate();
-
-  // Sample meetings data - in real app, this would come from appointments state
-  const allMeetings = [
-    {
-      id: 1,
-      title: 'Weekly Team Sync',
-      date: '2025-01-15',
-      time: '10:00',
-      duration: 60,
-      attendees: ['john@example.com', 'jane@example.com'],
-      timezone: 'America/New_York',
-      description: 'Weekly team synchronization meeting'
-    },
-    {
-      id: 2,
-      title: 'Project Review',
-      date: '2025-01-16',
-      time: '14:30',
-      duration: 90,
-      attendees: ['manager@example.com', 'dev@example.com'],
-      timezone: 'Europe/London',
-      description: 'Quarterly project review and planning'
-    },
-    {
-      id: 3,
-      title: 'Client Presentation',
-      date: '2025-01-18',
-      time: '09:00',
-      duration: 120,
-      attendees: ['client@example.com', 'sales@example.com'],
-      timezone: 'Asia/Tokyo',
-      description: 'Product demonstration for new client'
-    },
-    {
-      id: 4,
-      title: 'Past Meeting',
-      date: '2024-12-01',
-      time: '15:00',
-      duration: 60,
-      attendees: ['past@example.com'],
-      timezone: 'America/New_York',
-      description: 'This meeting is in the past and should not show'
-    }
-  ];
 
   // Filter meetings to only show future meetings
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const upcomingMeetings = allMeetings.filter(meeting => {
+  const upcomingMeetings = appointments.filter(meeting => {
     const meetingDate = new Date(meeting.date);
     meetingDate.setHours(0, 0, 0, 0);
     return meetingDate >= today;
@@ -175,13 +136,13 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ userEmail, onLogout
                   <div className="space-y-3">
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Description</h4>
-                      <p className="text-sm text-gray-600">{meeting.description}</p>
+                      <p className="text-sm text-gray-600">{meeting.description || 'No description provided'}</p>
                     </div>
                     
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Attendees</h4>
                       <div className="flex flex-wrap gap-1">
-                        {meeting.attendees.map((email, index) => (
+                        {meeting.attendees.map((email: string, index: number) => (
                           <span
                             key={index}
                             className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded"

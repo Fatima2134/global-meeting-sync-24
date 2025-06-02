@@ -38,6 +38,20 @@ const Index = () => {
     setAppointments(prev => [...prev, { ...appointment, id: Date.now() }]);
   };
 
+  const handleUpdateAppointment = (id: number, updatedAppointment: any) => {
+    setAppointments(prev => 
+      prev.map(appointment => 
+        appointment.id === id 
+          ? { ...updatedAppointment, id }
+          : appointment
+      )
+    );
+  };
+
+  const handleDeleteAppointment = (id: number) => {
+    setAppointments(prev => prev.filter(appointment => appointment.id !== id));
+  };
+
   if (!isAuthenticated) {
     return <AuthPage onLogin={handleLogin} />;
   }
@@ -62,6 +76,8 @@ const Index = () => {
             userEmail={userEmail} 
             onLogout={handleLogout} 
             appointments={appointments}
+            onUpdateAppointment={handleUpdateAppointment}
+            onDeleteAppointment={handleDeleteAppointment}
           />
         } 
       />

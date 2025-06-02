@@ -1,23 +1,29 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Users, Video } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Users, Video, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Header from './Header';
+import EditAppointmentModal from './EditAppointmentModal';
 
 interface UpcomingMeetingsProps {
   userEmail: string;
   onLogout: () => void;
   appointments: any[];
+  onUpdateAppointment: (id: number, appointment: any) => void;
+  onDeleteAppointment: (id: number) => void;
 }
 
 const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ 
   userEmail, 
   onLogout, 
-  appointments 
+  appointments,
+  onUpdateAppointment,
+  onDeleteAppointment
 }) => {
   const navigate = useNavigate();
+  const [editingAppointment, setEditingAppointment] = useState<any>(null);
 
   // Filter meetings to only show future meetings
   const today = new Date();
@@ -77,6 +83,19 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({
     window.open('https://zoom.us/', '_blank');
   };
 
+  const handleEdit = (meeting: any) => {
+    setEditingAppointment(meeting);
+  };
+
+  const handleDelete = (meetingId: number) => {
+    onDeleteAppointment(meetingId);
+  };
+
+  const handleUpdateAppointment = (appointment: any) => {
+    onUpdateAppointment(editingAppointment.id, appointment);
+    setEditingAppointment(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header userEmail={userEmail} onLogout={onLogout} />
@@ -102,13 +121,53 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({
               <CardHeader>
                 <CardTitle className="flex items-center justify-between text-gray-900">
                   <span>{meeting.title}</span>
-                  <Button
-                    onClick={handleJoinMeeting}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Video className="h-4 w-4 mr-2" />
-                    Join Meeting
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => handleEdit(meeting)}
+                      variant="outline"
+                      size="sm"
+                      className="text-gray-700 hover:bg-gray-100"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:bg-red-50 border-red-200"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-white">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-gray-900">Delete Meeting</AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-600">
+                            Are you sure you want to delete "{meeting.title}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="text-gray-700">Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDelete(meeting.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <Button
+                      onClick={handleJoinMeeting}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Video className="h-4 w-4 mr-2" />
+                      Join Meeting
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -177,6 +236,14 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({
           )}
         </div>
       </div>
+
+      {editingAppointment && (
+        <EditAppointmentModal
+          appointment={editingAppointment}
+          onClose={() => setEditingAppointment(null)}
+          onUpdateAppointment={handleUpdateAppointment}
+        />
+      )}
     </div>
   );
 };

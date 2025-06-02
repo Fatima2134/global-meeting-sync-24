@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ interface CalendarProps {
   onDateClick: (date: Date) => void;
 }
 
-const HOLIDAYS = {
+const HOLIDAYS: Record<string, string[]> = {
   'America/New_York': ['2024-01-01', '2024-07-04', '2024-12-25', '2025-01-01', '2025-07-04', '2025-12-25'],
   'America/Los_Angeles': ['2024-01-01', '2024-07-04', '2024-12-25', '2025-01-01', '2025-07-04', '2025-12-25'],
   'America/Chicago': ['2024-01-01', '2024-07-04', '2024-12-25', '2025-01-01', '2025-07-04', '2025-12-25'],
@@ -20,7 +19,7 @@ const HOLIDAYS = {
   'Asia/Tokyo': ['2024-01-01', '2024-01-08', '2024-12-31', '2025-01-01', '2025-01-13', '2025-12-31'],
   'Asia/Kolkata': ['2024-01-26', '2024-08-15', '2024-10-02', '2025-01-26', '2025-08-15', '2025-10-02'],
   'Asia/Shanghai': ['2024-01-01', '2024-10-01', '2025-01-01', '2025-10-01'],
-} as const;
+};
 
 const Calendar: React.FC<CalendarProps> = ({ 
   selectedTimezones, 
@@ -41,7 +40,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const isHoliday = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     return selectedTimezones.some(timezone => {
-      const holidays = HOLIDAYS[timezone as keyof typeof HOLIDAYS];
+      const holidays = HOLIDAYS[timezone];
       return holidays?.includes(dateStr);
     });
   };

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Users, Video, Edit, Trash2 } from 'lucide-react';
@@ -45,7 +46,7 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({
     });
   };
 
-  const formatTime = (time: string, timezone: string) => {
+  const formatTimeForTimezone = (time: string, timezone: string) => {
     const [hours, minutes] = time.split(':').map(Number);
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);
@@ -178,12 +179,25 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({
                       <span>{formatDate(meeting.date)}</span>
                     </div>
                     
-                    <div className="flex items-center text-gray-700">
-                      <Clock className="h-4 w-4 mr-2 text-blue-600" />
-                      <span>
-                        {formatTime(meeting.time, meeting.timezone)} 
-                        ({getCityName(meeting.timezone)}) - {meeting.duration} min
-                      </span>
+                    <div className="space-y-2">
+                      <div className="flex items-center text-gray-700">
+                        <Clock className="h-4 w-4 mr-2 text-blue-600" />
+                        <span className="font-medium">Meeting Times ({meeting.duration} min)</span>
+                      </div>
+                      <div className="ml-6 space-y-1">
+                        {meeting.allTimezones && meeting.allTimezones.length > 0 ? (
+                          meeting.allTimezones.map((timezone: string, index: number) => (
+                            <div key={timezone} className="text-sm text-gray-600">
+                              <span className="font-medium">{getCityName(timezone)}:</span> {formatTimeForTimezone(meeting.time, timezone)}
+                              {timezone === meeting.timezone && <span className="text-blue-600 ml-1">(Primary)</span>}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">{getCityName(meeting.timezone)}:</span> {formatTimeForTimezone(meeting.time, meeting.timezone)}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex items-center text-gray-700">

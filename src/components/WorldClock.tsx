@@ -198,7 +198,7 @@ const WorldClock: React.FC<WorldClockProps> = ({
             </Select>
           </div>
         )}
-      </SelectContent>
+      </CardContent>
     </Card>
   );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,17 +53,17 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     let overlapEnd = 24;
     let hasOverlap = true;
 
+    const referenceDate = new Date(date);
+    referenceDate.setHours(12, 0, 0, 0);
+
     for (const timezone of selectedTimezones) {
-      // Create a test date to get timezone offset
-      const testDate = new Date(date);
-      testDate.setHours(12, 0, 0, 0);
+      // Get the hour offset between timezones using proper timezone calculations
+      const primaryTime = new Date(referenceDate.toLocaleString('en-US', { timeZone: primaryTimezone }));
+      const timezoneTime = new Date(referenceDate.toLocaleString('en-US', { timeZone: timezone }));
       
-      // Get UTC offset for this timezone
-      const utcTime = testDate.getTime();
-      const timezoneTime = new Date(testDate.toLocaleString('en-US', { timeZone: timezone }));
-      const offsetHours = (utcTime - timezoneTime.getTime()) / (1000 * 60 * 60);
+      const offsetHours = (timezoneTime.getTime() - primaryTime.getTime()) / (1000 * 60 * 60);
       
-      // Convert working hours to primary timezone
+      // Convert working hours (9-17) from this timezone to primary timezone
       const localStart = 9 - offsetHours;
       const localEnd = 17 - offsetHours;
       
@@ -87,20 +86,19 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     const appointmentDate = new Date(date);
     appointmentDate.setHours(hours, minutes, 0, 0);
     
-    const timeInTimezone = appointmentDate.toLocaleTimeString('en-US', {
-      timeZone: timezone,
+    // Create a date in primary timezone and convert to target timezone
+    const primaryDateStr = appointmentDate.toLocaleString('en-US', { timeZone: primaryTimezone });
+    const targetDateStr = new Date(primaryDateStr).toLocaleString('en-US', { timeZone: timezone });
+    const targetDate = new Date(targetDateStr);
+    
+    const timeInTimezone = targetDate.toLocaleTimeString('en-US', {
       hour12: true,
       hour: '2-digit',
       minute: '2-digit'
     });
 
-    // Check if time falls within working hours (9 AM - 5 PM)
-    const hour24 = parseInt(appointmentDate.toLocaleTimeString('en-US', {
-      timeZone: timezone,
-      hour12: false,
-      hour: '2-digit'
-    }));
-
+    // Check if time falls within working hours (9 AM - 5 PM) in target timezone
+    const hour24 = targetDate.getHours();
     const isWorkingHours = hour24 >= 9 && hour24 < 17;
     
     return { time: timeInTimezone, isWorkingHours };

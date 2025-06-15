@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from './Header';
-import Sidebar from './Sidebar';
+import FunctionalSidebar from './FunctionalSidebar';
 import WorldClock from './WorldClock';
 import Calendar from './Calendar';
 import AppointmentModal from './AppointmentModal';
@@ -13,31 +13,30 @@ interface DashboardProps {
   onLogout: () => void;
   appointments: any[];
   onCreateAppointment: (appointment: any) => void;
+  selectedTimezones: string[];
+  primaryTimezone: string;
+  onTimezoneChange: (timezones: string[], primary: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   userEmail, 
   onLogout, 
   appointments, 
-  onCreateAppointment 
+  onCreateAppointment,
+  selectedTimezones,
+  primaryTimezone,
+  onTimezoneChange
 }) => {
-  const [selectedTimezones, setSelectedTimezones] = useState<string[]>(['America/New_York']);
-  const [primaryTimezone, setPrimaryTimezone] = useState('America/New_York');
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState('worldclock');
   const navigate = useNavigate();
-
-  const handleTimezoneChange = (timezones: string[], primary: string) => {
-    setSelectedTimezones(timezones);
-    setPrimaryTimezone(primary);
-  };
 
   const handleDateClick = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     date.setHours(0, 0, 0, 0);
     
-    // Prevent scheduling on past dates
     if (date < today) {
       return;
     }
@@ -51,16 +50,23 @@ const Dashboard: React.FC<DashboardProps> = ({
     setShowAppointmentModal(false);
   };
 
+  const handleSidebarCalendarClick = () => {
+    setActiveTab('calendar');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header userEmail={userEmail} onLogout={onLogout} />
       
       <div className="flex">
-        <Sidebar onNavigateToMeetings={() => navigate('/meetings')} />
+        <FunctionalSidebar 
+          onNavigateToMeetings={() => navigate('/meetings')} 
+          onCalendarClick={handleSidebarCalendarClick}
+        />
         
         <main className="flex-1 p-6 ml-64">
           <div className="max-w-7xl mx-auto">
-            <Tabs defaultValue="worldclock" className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <TabsList className="grid w-full grid-cols-2 bg-white">
                 <TabsTrigger 
                   value="worldclock" 
@@ -79,7 +85,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <TabsContent value="worldclock">
                 <WorldClock 
                   selectedTimezones={selectedTimezones}
-                  onTimezoneChange={handleTimezoneChange}
+                  onTimezoneChange={onTimezoneChange}
                   primaryTimezone={primaryTimezone}
                 />
               </TabsContent>

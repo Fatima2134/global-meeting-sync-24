@@ -81,30 +81,6 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     };
   };
 
-  const getTimeInTimezone = (time: string, timezone: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    const appointmentDate = new Date(date);
-    appointmentDate.setHours(hours, minutes, 0, 0);
-    
-    // Convert from primary timezone to target timezone
-    const primaryDateStr = appointmentDate.toLocaleString('sv-SE', { timeZone: primaryTimezone });
-    const primaryDate = new Date(primaryDateStr);
-    
-    const timeInTimezone = primaryDate.toLocaleTimeString('en-US', {
-      timeZone: timezone,
-      hour12: true,
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    // Check if time falls within working hours (9 AM - 5 PM) in target timezone
-    const targetTime = new Date(primaryDate.toLocaleString('sv-SE', { timeZone: timezone }));
-    const hour24 = targetTime.getHours();
-    const isWorkingHours = hour24 >= 9 && hour24 < 17;
-    
-    return { time: timeInTimezone, isWorkingHours };
-  };
-
   const getCityName = (timezone: string) => {
     const cities = {
       'America/New_York': 'New York',
@@ -234,7 +210,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
               </h3>
               
               {commonHours.hasOverlap && (
-                <div className="mb-3 p-2 bg-green-50 rounded border border-green-200">
+                <div className="p-2 bg-green-50 rounded border border-green-200">
                   <p className="text-sm text-green-700 font-medium">
                     Optimal meeting window: {commonHours.start}:00 - {commonHours.end}:00 ({getCityName(primaryTimezone)})
                   </p>
@@ -245,7 +221,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
               )}
               
               {!commonHours.hasOverlap && (
-                <div className="mb-3 p-2 bg-orange-50 rounded border border-orange-200">
+                <div className="p-2 bg-orange-50 rounded border border-orange-200">
                   <p className="text-sm text-orange-700 font-medium">
                     No common working hours found across all timezones
                   </p>
@@ -254,21 +230,6 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
                   </p>
                 </div>
               )}
-
-              <div className="space-y-1">
-                {selectedTimezones.map(timezone => {
-                  const { time: timezoneTime, isWorkingHours } = getTimeInTimezone(time, timezone);
-                  return (
-                    <div key={timezone} className="flex justify-between text-sm">
-                      <span className="text-gray-700">{getCityName(timezone)}</span>
-                      <span className={`font-mono ${isWorkingHours ? 'text-green-700' : 'text-orange-600'}`}>
-                        {timezoneTime}
-                        {!isWorkingHours && ' (Outside 9-5)'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           )}
 

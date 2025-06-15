@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Users, Video, Edit, Trash2 } from 'lucide-react';
@@ -46,13 +45,32 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({
     });
   };
 
-  const formatTimeForTimezone = (time: string, timezone: string) => {
+  const formatTimeForTimezone = (time: string, primaryTimezone: string, targetTimezone: string, meetingDate: string) => {
     const [hours, minutes] = time.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
     
-    return date.toLocaleTimeString('en-US', {
-      timeZone: timezone,
+    // Create a date object for the meeting in the primary timezone
+    const meetingDateTime = new Date(meetingDate);
+    meetingDateTime.setHours(hours, minutes, 0, 0);
+    
+    // Get the time as a string in the primary timezone
+    const primaryTimeString = meetingDateTime.toLocaleString('sv-SE', { timeZone: primaryTimezone });
+    
+    // Parse it back to get the actual UTC time
+    const primaryTime = new Date(primaryTimeString);
+    
+    // Calculate the offset between primary and target timezone
+    const primaryOffset = new Date().toLocaleString('sv-SE', { timeZone: primaryTimezone });
+    const targetOffset = new Date().toLocaleString('sv-SE', { timeZone: targetTimezone });
+    
+    const primaryDate = new Date(primaryOffset);
+    const targetDate = new Date(targetOffset);
+    
+    const offsetDiff = (targetDate.getTime() - primaryDate.getTime()) / (1000 * 60 * 60);
+    
+    // Apply the offset to the meeting time
+    const targetTime = new Date(meetingDateTime.getTime() + (offsetDiff * 60 * 60 * 1000));
+    
+    return targetTime.toLocaleTimeString('en-US', {
       hour12: true,
       hour: '2-digit',
       minute: '2-digit'
@@ -188,13 +206,13 @@ const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({
                         {meeting.allTimezones && meeting.allTimezones.length > 0 ? (
                           meeting.allTimezones.map((timezone: string, index: number) => (
                             <div key={timezone} className="text-sm text-gray-600">
-                              <span className="font-medium">{getCityName(timezone)}:</span> {formatTimeForTimezone(meeting.time, timezone)}
+                              <span className="font-medium">{getCityName(timezone)}:</span> {formatTimeForTimezone(meeting.time, meeting.timezone, timezone, meeting.date)}
                               {timezone === meeting.timezone && <span className="text-blue-600 ml-1">(Primary)</span>}
                             </div>
                           ))
                         ) : (
                           <div className="text-sm text-gray-600">
-                            <span className="font-medium">{getCityName(meeting.timezone)}:</span> {formatTimeForTimezone(meeting.time, meeting.timezone)}
+                            <span className="font-medium">{getCityName(meeting.timezone)}:</span> {formatTimeForTimezone(meeting.time, meeting.timezone, meeting.timezone, meeting.date)}
                           </div>
                         )}
                       </div>

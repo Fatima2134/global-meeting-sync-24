@@ -13,6 +13,18 @@ const Index = () => {
   const [selectedTimezones, setSelectedTimezones] = useState<string[]>(['America/New_York']);
   const [primaryTimezone, setPrimaryTimezone] = useState('America/New_York');
 
+  // Auto-delete past meetings function
+  const cleanupPastMeetings = (meetingsList: any[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return meetingsList.filter(meeting => {
+      const meetingDate = new Date(meeting.date);
+      meetingDate.setHours(0, 0, 0, 0);
+      return meetingDate >= today;
+    });
+  };
+
   // Load data from localStorage on mount
   useEffect(() => {
     const savedUsers = localStorage.getItem('registeredUsers');
@@ -26,7 +38,15 @@ const Index = () => {
       setRegisteredUsers(JSON.parse(savedUsers));
     }
     if (savedAppointments) {
-      setAppointments(JSON.parse(savedAppointments));
+      const parsedAppointments = JSON.parse(savedAppointments);
+      // Clean up past meetings on load
+      const cleanedAppointments = cleanupPastMeetings(parsedAppointments);
+      setAppointments(cleanedAppointments);
+      
+      // Update localStorage if appointments were cleaned
+      if (cleanedAppointments.length !== parsedAppointments.length) {
+        localStorage.setItem('appointments', JSON.stringify(cleanedAppointments));
+      }
     }
     if (savedTimezones) {
       setSelectedTimezones(JSON.parse(savedTimezones));
@@ -40,13 +60,34 @@ const Index = () => {
     }
   }, []);
 
+  // Clean up past meetings daily
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      setAppointments(prev => {
+        const cleaned = cleanupPastMeetings(prev);
+        if (cleaned.length !== prev.length) {
+          localStorage.setItem('appointments', JSON.stringify(cleaned));
+        }
+        return cleaned;
+      });
+    }, 24 * 60 * 60 * 1000); // Check every 24 hours
+
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
   // Save data to localStorage whenever state changes
   useEffect(() => {
     localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
   }, [registeredUsers]);
 
   useEffect(() => {
-    localStorage.setItem('appointments', JSON.stringify(appointments));
+    const cleanedAppointments = cleanupPastMeetings(appointments);
+    localStorage.setItem('appointments', JSON.stringify(cleanedAppointments));
+    
+    // Update state if appointments were cleaned
+    if (cleanedAppointments.length !== appointments.length) {
+      setAppointments(cleanedAppointments);
+    }
   }, [appointments]);
 
   useEffect(() => {
@@ -87,21 +128,35 @@ const Index = () => {
   };
 
   const handleCreateAppointment = (appointment: any) => {
-    setAppointments(prev => [...prev, { ...appointment, id: Date.now() }]);
+    const newAppointment = { ...appointment, id: Date.now() };
+    setAppointments(prev => {
+      const updated = [...prev, newAppointment];
+      // Save immediately to localStorage
+      localStorage.setItem('appointments', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleUpdateAppointment = (id: number, updatedAppointment: any) => {
-    setAppointments(prev => 
-      prev.map(appointment => 
+    setAppointments(prev => {
+      const updated = prev.map(appointment => 
         appointment.id === id 
           ? { ...updatedAppointment, id }
           : appointment
-      )
-    );
+      );
+      // Save immediately to localStorage
+      localStorage.setItem('appointments', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleDeleteAppointment = (id: number) => {
-    setAppointments(prev => prev.filter(appointment => appointment.id !== id));
+    setAppointments(prev => {
+      const updated = prev.filter(appointment => appointment.id !== id);
+      // Save immediately to localStorage
+      localStorage.setItem('appointments', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleTimezoneChange = (timezones: string[], primary: string) => {

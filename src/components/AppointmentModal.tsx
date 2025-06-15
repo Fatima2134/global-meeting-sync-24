@@ -1,9 +1,9 @@
+
 import React, { useState } from 'react';
 import { X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AppointmentModalProps {
   date: Date;
@@ -81,24 +81,25 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
     };
   };
 
-  const getWorkingHoursInTimezone = (time: string, timezone: string) => {
+  const getTimeInTimezone = (time: string, timezone: string) => {
     const [hours, minutes] = time.split(':').map(Number);
     const appointmentDate = new Date(date);
     appointmentDate.setHours(hours, minutes, 0, 0);
     
-    // Create a date in primary timezone and convert to target timezone
-    const primaryDateStr = appointmentDate.toLocaleString('en-US', { timeZone: primaryTimezone });
-    const targetDateStr = new Date(primaryDateStr).toLocaleString('en-US', { timeZone: timezone });
-    const targetDate = new Date(targetDateStr);
+    // Convert from primary timezone to target timezone
+    const primaryDateStr = appointmentDate.toLocaleString('sv-SE', { timeZone: primaryTimezone });
+    const primaryDate = new Date(primaryDateStr);
     
-    const timeInTimezone = targetDate.toLocaleTimeString('en-US', {
+    const timeInTimezone = primaryDate.toLocaleTimeString('en-US', {
+      timeZone: timezone,
       hour12: true,
       hour: '2-digit',
       minute: '2-digit'
     });
 
     // Check if time falls within working hours (9 AM - 5 PM) in target timezone
-    const hour24 = targetDate.getHours();
+    const targetTime = new Date(primaryDate.toLocaleString('sv-SE', { timeZone: timezone }));
+    const hour24 = targetTime.getHours();
     const isWorkingHours = hour24 >= 9 && hour24 < 17;
     
     return { time: timeInTimezone, isWorkingHours };
@@ -197,19 +198,19 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
-              Duration
+              Duration (minutes)
             </label>
-            <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger className="bg-white text-gray-900 border-gray-300">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                <SelectItem value="30" className="text-gray-900">30 minutes</SelectItem>
-                <SelectItem value="60" className="text-gray-900">1 hour</SelectItem>
-                <SelectItem value="90" className="text-gray-900">1.5 hours</SelectItem>
-                <SelectItem value="120" className="text-gray-900">2 hours</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input
+              type="number"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              min="15"
+              max="480"
+              step="15"
+              placeholder="60"
+              className="text-gray-900 bg-white border-gray-300"
+              required
+            />
           </div>
 
           <div>
@@ -229,7 +230,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="font-medium text-gray-900 mb-2 flex items-center">
                 <Clock className="h-4 w-4 mr-2 text-blue-600" />
-                Common Working Hours & Meeting Times
+                Meeting Times Across Timezones
               </h3>
               
               {commonHours.hasOverlap && (
@@ -256,7 +257,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
               <div className="space-y-1">
                 {selectedTimezones.map(timezone => {
-                  const { time: timezoneTime, isWorkingHours } = getWorkingHoursInTimezone(time, timezone);
+                  const { time: timezoneTime, isWorkingHours } = getTimeInTimezone(time, timezone);
                   return (
                     <div key={timezone} className="flex justify-between text-sm">
                       <span className="text-gray-700">{getCityName(timezone)}</span>

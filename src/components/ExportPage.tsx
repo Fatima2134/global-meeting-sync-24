@@ -33,7 +33,7 @@ const ExportPage = ({ userEmail }: ExportPageProps) => {
 
   const handleExport = async (tableName: string) => {
     try {
-      await exportService.exportTableAsCSV(tableName);
+      await exportService.exportTable(tableName);
       toast({
         title: 'Success',
         description: `${tableName} data exported successfully!`,

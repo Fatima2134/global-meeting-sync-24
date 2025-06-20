@@ -1,279 +1,155 @@
+
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Users, Video, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useAuth } from '@/hooks/useAuth';
 import Header from './Header';
+import FunctionalSidebar from './FunctionalSidebar';
 import EditAppointmentModal from './EditAppointmentModal';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Clock, MapPin, Users, ExternalLink, Edit, Trash2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 
 interface UpcomingMeetingsProps {
   userEmail: string;
-  onLogout: () => void;
   appointments: any[];
-  onUpdateAppointment: (id: number, appointment: any) => void;
-  onDeleteAppointment: (id: number) => void;
+  onUpdateAppointment: (id: string, appointment: any) => void;
+  onDeleteAppointment: (id: string) => void;
 }
 
-const UpcomingMeetings: React.FC<UpcomingMeetingsProps> = ({ 
-  userEmail, 
-  onLogout, 
+const UpcomingMeetings = ({
+  userEmail,
   appointments,
   onUpdateAppointment,
-  onDeleteAppointment
-}) => {
-  const navigate = useNavigate();
+  onDeleteAppointment,
+}: UpcomingMeetingsProps) => {
+  const { signOut } = useAuth();
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
 
-  // Filter meetings to only show future meetings
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const upcomingMeetings = appointments.filter(meeting => {
-    const meetingDate = new Date(meeting.date);
-    meetingDate.setHours(0, 0, 0, 0);
-    return meetingDate >= today;
-  });
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const handleLogout = async () => {
+    await signOut();
   };
 
-  const formatTimeForTimezone = (time: string, primaryTimezone: string, targetTimezone: string, meetingDate: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    
-    // Create a date object for the meeting in the primary timezone
-    const meetingDateTime = new Date(meetingDate);
-    meetingDateTime.setHours(hours, minutes, 0, 0);
-    
-    // Get the time as a string in the primary timezone
-    const primaryTimeString = meetingDateTime.toLocaleString('sv-SE', { timeZone: primaryTimezone });
-    
-    // Parse it back to get the actual UTC time
-    const primaryTime = new Date(primaryTimeString);
-    
-    // Calculate the offset between primary and target timezone
-    const primaryOffset = new Date().toLocaleString('sv-SE', { timeZone: primaryTimezone });
-    const targetOffset = new Date().toLocaleString('sv-SE', { timeZone: targetTimezone });
-    
-    const primaryDate = new Date(primaryOffset);
-    const targetDate = new Date(targetOffset);
-    
-    const offsetDiff = (targetDate.getTime() - primaryDate.getTime()) / (1000 * 60 * 60);
-    
-    // Apply the offset to the meeting time
-    const targetTime = new Date(meetingDateTime.getTime() + (offsetDiff * 60 * 60 * 1000));
-    
-    return targetTime.toLocaleTimeString('en-US', {
-      hour12: true,
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const upcomingAppointments = appointments
+    .filter(apt => new Date(`${apt.date} ${apt.time}`) >= new Date())
+    .sort((a, b) => new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime());
 
-  const getCityName = (timezone: string) => {
-    const cities = {
-      'America/New_York': 'New York',
-      'America/Los_Angeles': 'Los Angeles',
-      'Europe/London': 'London',
-      'Europe/Paris': 'Paris',
-      'Asia/Tokyo': 'Tokyo',
-      'Australia/Sydney': 'Sydney',
-      'Asia/Kolkata': 'Mumbai',
-      'Asia/Dubai': 'Dubai',
-      'Asia/Singapore': 'Singapore',
-      'Asia/Hong_Kong': 'Hong Kong',
-      'Europe/Berlin': 'Berlin',
-      'Europe/Moscow': 'Moscow',
-      'America/Sao_Paulo': 'São Paulo',
-      'America/Toronto': 'Toronto',
-      'America/Chicago': 'Chicago',
-    };
-    return cities[timezone as keyof typeof cities] || timezone;
-  };
-
-  const handleJoinMeeting = () => {
-    window.open('https://zoom.us/', '_blank');
-  };
-
-  const handleEdit = (meeting: any) => {
-    setEditingAppointment(meeting);
-  };
-
-  const handleDelete = (meetingId: number) => {
-    onDeleteAppointment(meetingId);
-  };
-
-  const handleUpdateAppointment = (appointment: any) => {
-    onUpdateAppointment(editingAppointment.id, appointment);
-    setEditingAppointment(null);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'scheduled': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header userEmail={userEmail} onLogout={onLogout} />
-      
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <Button
-              onClick={() => navigate('/')}
-              variant="ghost"
-              className="mr-4 text-gray-700 hover:bg-gray-100"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Upcoming Meetings</h1>
-          </div>
-        </div>
+    <div className="flex h-screen bg-gray-50">
+      <FunctionalSidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header userEmail={userEmail} onLogout={handleLogout} />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">Upcoming Meetings</h1>
+              <p className="text-gray-600">Manage your scheduled meetings</p>
+            </div>
 
-        <div className="space-y-4">
-          {upcomingMeetings.map(meeting => (
-            <Card key={meeting.id} className="bg-white border border-gray-200">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-gray-900">
-                  <span>{meeting.title}</span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => handleEdit(meeting)}
-                      variant="outline"
-                      size="sm"
-                      className="text-gray-700 hover:bg-gray-100"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:bg-red-50 border-red-200"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-white">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="text-gray-900">Delete Meeting</AlertDialogTitle>
-                          <AlertDialogDescription className="text-gray-600">
-                            Are you sure you want to delete "{meeting.title}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="text-gray-700">Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDelete(meeting.id)}
-                            className="bg-red-600 hover:bg-red-700 text-white"
+            <div className="space-y-4">
+              {upcomingAppointments.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No upcoming meetings</h3>
+                    <p className="text-gray-600">You don't have any meetings scheduled.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                upcomingAppointments.map((appointment) => (
+                  <Card key={appointment.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{appointment.title}</CardTitle>
+                        <div className="flex items-center space-x-2">
+                          <Badge className={getStatusColor(appointment.status || 'scheduled')}>
+                            {appointment.status || 'scheduled'}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingAppointment(appointment)}
                           >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                    <Button
-                      onClick={handleJoinMeeting}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Video className="h-4 w-4 mr-2" />
-                      Join Meeting
-                    </Button>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center text-gray-700">
-                      <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                      <span>{formatDate(meeting.date)}</span>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center text-gray-700">
-                        <Clock className="h-4 w-4 mr-2 text-blue-600" />
-                        <span className="font-medium">Meeting Times ({meeting.duration} min)</span>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onDeleteAppointment(appointment.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="ml-6 space-y-1">
-                        {meeting.allTimezones && meeting.allTimezones.length > 0 ? (
-                          meeting.allTimezones.map((timezone: string, index: number) => (
-                            <div key={timezone} className="text-sm text-gray-600">
-                              <span className="font-medium">{getCityName(timezone)}:</span> {formatTimeForTimezone(meeting.time, meeting.timezone, timezone, meeting.date)}
-                              {timezone === meeting.timezone && <span className="text-blue-600 ml-1">(Primary)</span>}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium">{getCityName(meeting.timezone)}:</span> {formatTimeForTimezone(meeting.time, meeting.timezone, meeting.timezone, meeting.date)}
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {appointment.description && (
+                          <p className="text-gray-600">{appointment.description}</p>
+                        )}
+                        
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="h-4 w-4" />
+                            <span>{format(parseISO(appointment.date), 'MMMM d, yyyy')}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-4 w-4" />
+                            <span>{appointment.time} ({appointment.duration} min)</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{appointment.timezone}</span>
+                          </div>
+                        </div>
+
+                        {appointment.attendees && appointment.attendees.length > 0 && (
+                          <div className="flex items-center space-x-1 text-sm text-gray-600">
+                            <Users className="h-4 w-4" />
+                            <span>{appointment.attendees.length} attendees</span>
+                          </div>
+                        )}
+
+                        {appointment.meetingUrl && (
+                          <div className="pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(appointment.meetingUrl, '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Join Meeting
+                            </Button>
                           </div>
                         )}
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center text-gray-700">
-                      <Users className="h-4 w-4 mr-2 text-blue-600" />
-                      <span>{meeting.attendees.length} attendees</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Description</h4>
-                      <p className="text-sm text-gray-600">{meeting.description || 'No description provided'}</p>
-                    </div>
-                    
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Attendees</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {meeting.attendees.map((email: string, index: number) => (
-                          <span
-                            key={index}
-                            className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded"
-                          >
-                            {email}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {upcomingMeetings.length === 0 && (
-            <Card className="bg-white border border-gray-200">
-              <CardContent className="text-center py-12">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No upcoming meetings</h3>
-                <p className="text-gray-600 mb-4">
-                  You don't have any scheduled meetings at the moment.
-                </p>
-                <Button
-                  onClick={() => navigate('/')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Schedule a Meeting
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+        </main>
       </div>
 
       {editingAppointment && (
         <EditAppointmentModal
-          appointment={editingAppointment}
+          isOpen={true}
           onClose={() => setEditingAppointment(null)}
-          onUpdateAppointment={handleUpdateAppointment}
+          onSubmit={(updatedAppointment) => {
+            onUpdateAppointment(editingAppointment.id, updatedAppointment);
+            setEditingAppointment(null);
+          }}
+          appointment={editingAppointment}
         />
       )}
     </div>

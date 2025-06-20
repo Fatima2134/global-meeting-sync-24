@@ -1,171 +1,191 @@
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { meetingService } from '@/services/meetingService';
+import { timezoneService } from '@/services/timezoneService';
 import AuthPage from '../components/AuthPage';
 import Dashboard from '../components/Dashboard';
 import UpcomingMeetings from '../components/UpcomingMeetings';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
-  const [registeredUsers, setRegisteredUsers] = useState<string[]>([]);
+  const { user, loading } = useAuth();
+  const { toast } = useToast();
   const [appointments, setAppointments] = useState<any[]>([]);
   const [selectedTimezones, setSelectedTimezones] = useState<string[]>(['America/New_York']);
   const [primaryTimezone, setPrimaryTimezone] = useState('America/New_York');
+  const [loadingData, setLoadingData] = useState(false);
 
-  // Auto-delete past meetings function
-  const cleanupPastMeetings = (meetingsList: any[]) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // Load user data when authenticated
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    }
+  }, [user]);
+
+  const loadUserData = async () => {
+    if (!user) return;
     
-    return meetingsList.filter(meeting => {
-      const meetingDate = new Date(meeting.date);
-      meetingDate.setHours(0, 0, 0, 0);
-      return meetingDate >= today;
-    });
-  };
+    setLoadingData(true);
+    try {
+      // Load meetings
+      const meetings = await meetingService.getMeetings(user.id);
+      setAppointments(meetings.map(meeting => ({
+        id: meeting.id,
+        title: meeting.title,
+        description: meeting.description,
+        date: meeting.meeting_date,
+        time: meeting.meeting_time,
+        duration: meeting.duration,
+        timezone: meeting.timezone,
+        meetingUrl: meeting.meeting_url,
+        status: meeting.status,
+        attendees: meeting.attendees
+      })));
 
-  // Load data from localStorage on mount
-  useEffect(() => {
-    const savedUsers = localStorage.getItem('registeredUsers');
-    const savedAppointments = localStorage.getItem('appointments');
-    const savedTimezones = localStorage.getItem('selectedTimezones');
-    const savedPrimaryTimezone = localStorage.getItem('primaryTimezone');
-    const savedAuth = localStorage.getItem('isAuthenticated');
-    const savedEmail = localStorage.getItem('userEmail');
-
-    if (savedUsers) {
-      setRegisteredUsers(JSON.parse(savedUsers));
-    }
-    if (savedAppointments) {
-      const parsedAppointments = JSON.parse(savedAppointments);
-      // Clean up past meetings on load
-      const cleanedAppointments = cleanupPastMeetings(parsedAppointments);
-      setAppointments(cleanedAppointments);
-      
-      // Update localStorage if appointments were cleaned
-      if (cleanedAppointments.length !== parsedAppointments.length) {
-        localStorage.setItem('appointments', JSON.stringify(cleanedAppointments));
+      // Load timezone preferences
+      const timezonePrefs = await timezoneService.getTimezonePreferences(user.id);
+      if (timezonePrefs.length > 0) {
+        const timezones = timezonePrefs.map(pref => pref.timezone);
+        const primary = timezonePrefs.find(pref => pref.is_primary)?.timezone || timezones[0];
+        setSelectedTimezones(timezones);
+        setPrimaryTimezone(primary);
       }
-    }
-    if (savedTimezones) {
-      setSelectedTimezones(JSON.parse(savedTimezones));
-    }
-    if (savedPrimaryTimezone) {
-      setPrimaryTimezone(savedPrimaryTimezone);
-    }
-    if (savedAuth === 'true' && savedEmail) {
-      setIsAuthenticated(true);
-      setUserEmail(savedEmail);
-    }
-  }, []);
-
-  // Clean up past meetings daily
-  useEffect(() => {
-    const cleanupInterval = setInterval(() => {
-      setAppointments(prev => {
-        const cleaned = cleanupPastMeetings(prev);
-        if (cleaned.length !== prev.length) {
-          localStorage.setItem('appointments', JSON.stringify(cleaned));
-        }
-        return cleaned;
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load your data. Please try again.',
+        variant: 'destructive',
       });
-    }, 24 * 60 * 60 * 1000); // Check every 24 hours
-
-    return () => clearInterval(cleanupInterval);
-  }, []);
-
-  // Save data to localStorage whenever state changes
-  useEffect(() => {
-    localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-  }, [registeredUsers]);
-
-  useEffect(() => {
-    const cleanedAppointments = cleanupPastMeetings(appointments);
-    localStorage.setItem('appointments', JSON.stringify(cleanedAppointments));
-    
-    // Update state if appointments were cleaned
-    if (cleanedAppointments.length !== appointments.length) {
-      setAppointments(cleanedAppointments);
+    } finally {
+      setLoadingData(false);
     }
-  }, [appointments]);
+  };
 
-  useEffect(() => {
-    localStorage.setItem('selectedTimezones', JSON.stringify(selectedTimezones));
-  }, [selectedTimezones]);
+  const handleCreateAppointment = async (appointment: any) => {
+    if (!user) return;
 
-  useEffect(() => {
-    localStorage.setItem('primaryTimezone', primaryTimezone);
-  }, [primaryTimezone]);
+    try {
+      const newMeeting = await meetingService.createMeeting({
+        title: appointment.title,
+        description: appointment.description,
+        meeting_date: appointment.date,
+        meeting_time: appointment.time,
+        duration: appointment.duration,
+        timezone: appointment.timezone,
+        meeting_url: appointment.meetingUrl
+      });
 
-  useEffect(() => {
-    localStorage.setItem('isAuthenticated', isAuthenticated.toString());
-    localStorage.setItem('userEmail', userEmail);
-  }, [isAuthenticated, userEmail]);
-
-  const handleLogin = (email: string, isSignUp: boolean = false) => {
-    if (isSignUp) {
-      setRegisteredUsers(prev => [...prev, email]);
-      setIsAuthenticated(true);
-      setUserEmail(email);
-    } else {
-      if (registeredUsers.includes(email)) {
-        setIsAuthenticated(true);
-        setUserEmail(email);
-      } else {
-        alert('Please sign up first before logging in.');
-        return false;
+      // Add attendees if provided
+      if (appointment.attendees && appointment.attendees.length > 0) {
+        for (const attendee of appointment.attendees) {
+          if (attendee.email) {
+            await meetingService.addAttendee(newMeeting.id, attendee.email);
+          }
+        }
       }
+
+      // Reload meetings
+      await loadUserData();
+      
+      toast({
+        title: 'Success',
+        description: 'Meeting created successfully!',
+      });
+    } catch (error) {
+      console.error('Error creating meeting:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create meeting. Please try again.',
+        variant: 'destructive',
+      });
     }
-    return true;
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserEmail('');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userEmail');
+  const handleUpdateAppointment = async (id: string, updatedAppointment: any) => {
+    try {
+      await meetingService.updateMeeting(id, {
+        title: updatedAppointment.title,
+        description: updatedAppointment.description,
+        meeting_date: updatedAppointment.date,
+        meeting_time: updatedAppointment.time,
+        duration: updatedAppointment.duration,
+        timezone: updatedAppointment.timezone,
+        meeting_url: updatedAppointment.meetingUrl
+      });
+
+      // Reload meetings
+      await loadUserData();
+      
+      toast({
+        title: 'Success',
+        description: 'Meeting updated successfully!',
+      });
+    } catch (error) {
+      console.error('Error updating meeting:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update meeting. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleCreateAppointment = (appointment: any) => {
-    const newAppointment = { ...appointment, id: Date.now() };
-    setAppointments(prev => {
-      const updated = [...prev, newAppointment];
-      // Save immediately to localStorage
-      localStorage.setItem('appointments', JSON.stringify(updated));
-      return updated;
-    });
+  const handleDeleteAppointment = async (id: string) => {
+    try {
+      await meetingService.deleteMeeting(id);
+      
+      // Reload meetings
+      await loadUserData();
+      
+      toast({
+        title: 'Success',
+        description: 'Meeting deleted successfully!',
+      });
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete meeting. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleUpdateAppointment = (id: number, updatedAppointment: any) => {
-    setAppointments(prev => {
-      const updated = prev.map(appointment => 
-        appointment.id === id 
-          ? { ...updatedAppointment, id }
-          : appointment
-      );
-      // Save immediately to localStorage
-      localStorage.setItem('appointments', JSON.stringify(updated));
-      return updated;
-    });
+  const handleTimezoneChange = async (timezones: string[], primary: string) => {
+    if (!user) return;
+
+    try {
+      await timezoneService.updateTimezonePreferences(user.id, timezones, primary);
+      setSelectedTimezones(timezones);
+      setPrimaryTimezone(primary);
+      
+      toast({
+        title: 'Success',
+        description: 'Timezone preferences updated!',
+      });
+    } catch (error) {
+      console.error('Error updating timezone preferences:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update timezone preferences. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDeleteAppointment = (id: number) => {
-    setAppointments(prev => {
-      const updated = prev.filter(appointment => appointment.id !== id);
-      // Save immediately to localStorage
-      localStorage.setItem('appointments', JSON.stringify(updated));
-      return updated;
-    });
-  };
+  if (loading || loadingData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
-  const handleTimezoneChange = (timezones: string[], primary: string) => {
-    setSelectedTimezones(timezones);
-    setPrimaryTimezone(primary);
-  };
-
-  if (!isAuthenticated) {
-    return <AuthPage onLogin={handleLogin} />;
+  if (!user) {
+    return <AuthPage />;
   }
 
   return (
@@ -174,8 +194,7 @@ const Index = () => {
         path="/" 
         element={
           <Dashboard 
-            userEmail={userEmail} 
-            onLogout={handleLogout} 
+            userEmail={user.email || ''} 
             appointments={appointments}
             onCreateAppointment={handleCreateAppointment}
             selectedTimezones={selectedTimezones}
@@ -188,8 +207,7 @@ const Index = () => {
         path="/meetings" 
         element={
           <UpcomingMeetings 
-            userEmail={userEmail} 
-            onLogout={handleLogout} 
+            userEmail={user.email || ''} 
             appointments={appointments}
             onUpdateAppointment={handleUpdateAppointment}
             onDeleteAppointment={handleDeleteAppointment}

@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client'
 import { Database } from '@/integrations/supabase/types'
+import { emailService } from './emailService'
 
 type Meeting = Database['public']['Tables']['meetings']['Row']
 type MeetingInsert = Database['public']['Tables']['meetings']['Insert']
@@ -20,11 +21,12 @@ export const meetingService = {
     return data || []
   },
 
-  async createMeeting(meeting: Omit<MeetingInsert, 'creator_id'>) {
+  async createMeeting(meeting: Omit<MeetingInsert, 'creator_id'>, attendeeEmails: string[] = []) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
-    const { data, error } = await supabase
+    // Create the meeting
+    const { data: newMeeting, error: meetingError } = await supabase
       .from('meetings')
       .insert({
         ...meeting,
@@ -33,12 +35,35 @@ export const meetingService = {
       .select()
       .single()
 
-    if (error) {
-      console.error('Error creating meeting:', error)
-      throw error
+    if (meetingError) {
+      console.error('Error creating meeting:', meetingError)
+      throw meetingError
     }
 
-    return data
+    // Add attendees if provided
+    if (attendeeEmails.length > 0) {
+      for (const email of attendeeEmails) {
+        await this.addAttendee(newMeeting.id, email)
+      }
+
+      // Send email notifications
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', user.id)
+          .single()
+
+        const creatorEmail = profile?.email || user.email || ''
+        
+        await emailService.sendMeetingInvitation(newMeeting, attendeeEmails, creatorEmail)
+      } catch (emailError) {
+        console.error('Error sending meeting invitations:', emailError)
+        // Don't throw here - meeting was created successfully, email is secondary
+      }
+    }
+
+    return newMeeting
   },
 
   async updateMeeting(id: string, updates: MeetingUpdate) {

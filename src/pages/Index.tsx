@@ -7,6 +7,9 @@ import { timezoneService } from '@/services/timezoneService';
 import SupabaseAuthPage from '../components/SupabaseAuthPage';
 import Dashboard from '../components/Dashboard';
 import UpcomingMeetings from '../components/UpcomingMeetings';
+import EmailPage from '../components/EmailPage';
+import ExportPage from '../components/ExportPage';
+import IntegrationsPage from '../components/IntegrationsPage';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -68,6 +71,8 @@ const Index = () => {
     if (!user) return;
 
     try {
+      const attendeeEmails = appointment.attendees || [];
+      
       const newMeeting = await meetingService.createMeeting({
         title: appointment.title,
         description: appointment.description,
@@ -76,23 +81,16 @@ const Index = () => {
         duration: appointment.duration,
         timezone: appointment.timezone,
         meeting_url: appointment.meetingUrl
-      });
-
-      // Add attendees if provided
-      if (appointment.attendees && appointment.attendees.length > 0) {
-        for (const attendee of appointment.attendees) {
-          if (attendee.email) {
-            await meetingService.addAttendee(newMeeting.id, attendee.email);
-          }
-        }
-      }
+      }, attendeeEmails);
 
       // Reload meetings
       await loadUserData();
       
       toast({
         title: 'Success',
-        description: 'Meeting created successfully!',
+        description: attendeeEmails.length > 0 
+          ? `Meeting created and invitations sent to ${attendeeEmails.length} attendees!`
+          : 'Meeting created successfully!',
       });
     } catch (error) {
       console.error('Error creating meeting:', error);
@@ -213,6 +211,18 @@ const Index = () => {
             onDeleteAppointment={handleDeleteAppointment}
           />
         } 
+      />
+      <Route 
+        path="/email" 
+        element={<EmailPage userEmail={user.email || ''} />} 
+      />
+      <Route 
+        path="/export" 
+        element={<ExportPage userEmail={user.email || ''} />} 
+      />
+      <Route 
+        path="/integrations" 
+        element={<IntegrationsPage userEmail={user.email || ''} />} 
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -27,13 +27,17 @@ export const meetingService = {
 
     console.log('Creating meeting:', meeting, 'with attendees:', attendeeEmails)
 
+    // Clean the meeting data to handle undefined values properly
+    const cleanMeeting = {
+      ...meeting,
+      creator_id: user.id,
+      meeting_url: meeting.meeting_url === undefined ? null : meeting.meeting_url
+    }
+
     // Create the meeting
     const { data: newMeeting, error: meetingError } = await supabase
       .from('meetings')
-      .insert({
-        ...meeting,
-        creator_id: user.id
-      })
+      .insert(cleanMeeting)
       .select()
       .single()
 
@@ -82,9 +86,15 @@ export const meetingService = {
   async updateMeeting(id: string, updates: MeetingUpdate) {
     console.log('Updating meeting:', id, updates)
     
+    // Clean the updates to handle undefined values properly
+    const cleanUpdates = {
+      ...updates,
+      meeting_url: updates.meeting_url === undefined ? null : updates.meeting_url
+    }
+    
     const { data, error } = await supabase
       .from('meetings')
-      .update(updates)
+      .update(cleanUpdates)
       .eq('id', id)
       .select()
       .single()

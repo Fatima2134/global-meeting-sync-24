@@ -59,30 +59,60 @@ CREATE POLICY "Users can view all profiles" ON public.profiles FOR SELECT USING 
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
--- RLS Policies for meetings
-CREATE POLICY "Users can view meetings they created or are invited to" ON public.meetings FOR SELECT 
+-- RLS Policies for meetings - Fixed to prevent infinite recursion
+CREATE POLICY "Users can view their own meetings" ON public.meetings FOR SELECT 
+USING (creator_id = auth.uid());
+
+CREATE POLICY "Users can view meetings they are invited to" ON public.meetings FOR SELECT 
 USING (
-  creator_id = auth.uid() OR 
-  id IN (
-    SELECT meeting_id FROM public.meeting_attendees 
-    WHERE user_id = auth.uid()
+  EXISTS (
+    SELECT 1 FROM public.meeting_attendees 
+    WHERE meeting_id = meetings.id AND user_id = auth.uid()
   )
 );
-CREATE POLICY "Users can create meetings" ON public.meetings FOR INSERT WITH CHECK (creator_id = auth.uid());
-CREATE POLICY "Users can update their own meetings" ON public.meetings FOR UPDATE USING (creator_id = auth.uid());
-CREATE POLICY "Users can delete their own meetings" ON public.meetings FOR DELETE USING (creator_id = auth.uid());
+
+CREATE POLICY "Users can create meetings" ON public.meetings FOR INSERT 
+WITH CHECK (creator_id = auth.uid());
+
+CREATE POLICY "Users can update their own meetings" ON public.meetings FOR UPDATE 
+USING (creator_id = auth.uid());
+
+CREATE POLICY "Users can delete their own meetings" ON public.meetings FOR DELETE 
+USING (creator_id = auth.uid());
 
 -- RLS Policies for meeting attendees
-CREATE POLICY "Users can view attendees of meetings they're involved in" ON public.meeting_attendees FOR SELECT 
+CREATE POLICY "Users can view attendees of their own meetings" ON public.meeting_attendees FOR SELECT 
 USING (
-  meeting_id IN (
-    SELECT id FROM public.meetings WHERE creator_id = auth.uid()
-  ) OR user_id = auth.uid()
+  EXISTS (
+    SELECT 1 FROM public.meetings 
+    WHERE id = meeting_attendees.meeting_id AND creator_id = auth.uid()
+  )
 );
-CREATE POLICY "Meeting creators can manage attendees" ON public.meeting_attendees FOR ALL 
+
+CREATE POLICY "Users can view their own attendee records" ON public.meeting_attendees FOR SELECT 
+USING (user_id = auth.uid());
+
+CREATE POLICY "Meeting creators can manage attendees" ON public.meeting_attendees FOR INSERT 
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.meetings 
+    WHERE id = meeting_attendees.meeting_id AND creator_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Meeting creators can update attendees" ON public.meeting_attendees FOR UPDATE 
 USING (
-  meeting_id IN (
-    SELECT id FROM public.meetings WHERE creator_id = auth.uid()
+  EXISTS (
+    SELECT 1 FROM public.meetings 
+    WHERE id = meeting_attendees.meeting_id AND creator_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Meeting creators can delete attendees" ON public.meeting_attendees FOR DELETE 
+USING (
+  EXISTS (
+    SELECT 1 FROM public.meetings 
+    WHERE id = meeting_attendees.meeting_id AND creator_id = auth.uid()
   )
 );
 
@@ -139,7 +169,7 @@ BEGIN
     COALESCE(
       jsonb_agg(
         jsonb_build_object(
-          'email', COALESCE(pa.email, ap.email),
+          'email', COALESCE(ma.email, ap.email),
           'status', ma.status,
           'full_name', ap.full_name
         )
@@ -150,11 +180,10 @@ BEGIN
   LEFT JOIN public.profiles p ON m.creator_id = p.id
   LEFT JOIN public.meeting_attendees ma ON m.id = ma.meeting_id
   LEFT JOIN public.profiles ap ON ma.user_id = ap.id
-  LEFT JOIN public.profiles pa ON ma.email = pa.email
   WHERE m.creator_id = user_uuid 
-     OR m.id IN (
-       SELECT meeting_id FROM public.meeting_attendees 
-       WHERE user_id = user_uuid
+     OR EXISTS (
+       SELECT 1 FROM public.meeting_attendees ma2 
+       WHERE ma2.meeting_id = m.id AND ma2.user_id = user_uuid
      )
   GROUP BY m.id, m.title, m.description, m.meeting_date, m.meeting_time, 
            m.duration, m.timezone, m.meeting_url, m.status, p.email

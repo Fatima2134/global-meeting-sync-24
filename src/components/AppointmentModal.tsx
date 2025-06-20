@@ -25,21 +25,29 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
   const [time, setTime] = useState('09:00');
   const [duration, setDuration] = useState('60');
   const [attendees, setAttendees] = useState('');
+  const [meetingUrl, setMeetingUrl] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!title.trim()) {
+      alert('Please enter a meeting title');
+      return;
+    }
+    
     const appointment = {
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       date: date.toISOString().split('T')[0],
       time,
       duration: parseInt(duration),
       attendees: attendees.split(',').map(email => email.trim()).filter(email => email),
       timezone: primaryTimezone,
-      allTimezones: selectedTimezones
+      allTimezones: selectedTimezones,
+      meetingUrl: meetingUrl.trim() || undefined
     };
 
+    console.log('Creating appointment:', appointment);
     onCreateAppointment(appointment);
   };
 
@@ -186,6 +194,19 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
               placeholder="60"
               className="text-gray-900 bg-white border-gray-300"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Meeting URL (optional)
+            </label>
+            <Input
+              type="url"
+              value={meetingUrl}
+              onChange={(e) => setMeetingUrl(e.target.value)}
+              placeholder="https://zoom.us/j/123456789 or https://meet.google.com/abc-defg-hij"
+              className="text-gray-900 bg-white border-gray-300"
             />
           </div>
 

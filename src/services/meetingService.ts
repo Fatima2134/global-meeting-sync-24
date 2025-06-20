@@ -25,6 +25,8 @@ export const meetingService = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
+    console.log('Creating meeting:', meeting, 'with attendees:', attendeeEmails)
+
     // Create the meeting
     const { data: newMeeting, error: meetingError } = await supabase
       .from('meetings')
@@ -40,10 +42,20 @@ export const meetingService = {
       throw meetingError
     }
 
+    console.log('Meeting created successfully:', newMeeting)
+
     // Add attendees if provided
     if (attendeeEmails.length > 0) {
-      for (const email of attendeeEmails) {
-        await this.addAttendee(newMeeting.id, email)
+      const attendeePromises = attendeeEmails.map(email => 
+        this.addAttendee(newMeeting.id, email.trim())
+      )
+      
+      try {
+        await Promise.all(attendeePromises)
+        console.log('All attendees added successfully')
+      } catch (attendeeError) {
+        console.error('Error adding some attendees:', attendeeError)
+        // Continue even if some attendees fail to be added
       }
 
       // Send email notifications
@@ -57,6 +69,7 @@ export const meetingService = {
         const creatorEmail = profile?.email || user.email || ''
         
         await emailService.sendMeetingInvitation(newMeeting, attendeeEmails, creatorEmail)
+        console.log('Meeting invitations sent successfully')
       } catch (emailError) {
         console.error('Error sending meeting invitations:', emailError)
         // Don't throw here - meeting was created successfully, email is secondary
@@ -67,6 +80,8 @@ export const meetingService = {
   },
 
   async updateMeeting(id: string, updates: MeetingUpdate) {
+    console.log('Updating meeting:', id, updates)
+    
     const { data, error } = await supabase
       .from('meetings')
       .update(updates)
@@ -79,10 +94,13 @@ export const meetingService = {
       throw error
     }
 
+    console.log('Meeting updated successfully:', data)
     return data
   },
 
   async deleteMeeting(id: string) {
+    console.log('Deleting meeting:', id)
+    
     const { error } = await supabase
       .from('meetings')
       .delete()
@@ -92,14 +110,24 @@ export const meetingService = {
       console.error('Error deleting meeting:', error)
       throw error
     }
+
+    console.log('Meeting deleted successfully')
   },
 
   async addAttendee(meetingId: string, email: string) {
+    if (!email || !email.trim()) {
+      console.warn('Empty email provided, skipping attendee')
+      return
+    }
+
+    const trimmedEmail = email.trim()
+    console.log('Adding attendee:', trimmedEmail, 'to meeting:', meetingId)
+
     // Check if user exists
     const { data: profile } = await supabase
       .from('profiles')
       .select('id')
-      .eq('email', email)
+      .eq('email', trimmedEmail)
       .single()
 
     const { error } = await supabase
@@ -107,12 +135,14 @@ export const meetingService = {
       .insert({
         meeting_id: meetingId,
         user_id: profile?.id || null,
-        email: !profile ? email : null
+        email: !profile ? trimmedEmail : null
       })
 
     if (error) {
       console.error('Error adding attendee:', error)
       throw error
     }
+
+    console.log('Attendee added successfully:', trimmedEmail)
   }
 }

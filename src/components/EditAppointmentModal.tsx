@@ -22,6 +22,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
   const [date, setDate] = useState(appointment.date);
   const [time, setTime] = useState(appointment.time);
   const [duration, setDuration] = useState(appointment.duration.toString());
+  const [meetingUrl, setMeetingUrl] = useState(appointment.meetingUrl || '');
   const [attendees, setAttendees] = useState(
     Array.isArray(appointment.attendees) 
       ? appointment.attendees.map(a => typeof a === 'string' ? a : a.email).join(', ')
@@ -31,17 +32,24 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!title.trim()) {
+      alert('Please enter a meeting title');
+      return;
+    }
+    
     const updatedAppointment = {
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       date,
       time,
       duration: parseInt(duration),
       attendees: attendees.split(',').map(email => email.trim()).filter(email => email),
       timezone: appointment.timezone,
-      allTimezones: appointment.allTimezones
+      allTimezones: appointment.allTimezones,
+      meetingUrl: meetingUrl.trim() || undefined
     };
 
+    console.log('Updating appointment:', updatedAppointment);
     onUpdateAppointment(updatedAppointment);
   };
 
@@ -150,6 +158,19 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
                 <SelectItem value="120" className="text-gray-900">2 hours</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Meeting URL (optional)
+            </label>
+            <Input
+              type="url"
+              value={meetingUrl}
+              onChange={(e) => setMeetingUrl(e.target.value)}
+              placeholder="https://zoom.us/j/123456789 or https://meet.google.com/abc-defg-hij"
+              className="text-gray-900 bg-white border-gray-300"
+            />
           </div>
 
           <div>

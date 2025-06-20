@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -44,7 +43,7 @@ const AppointmentModal: React.FC<AppointmentModalProps> = ({
       attendees: attendees.split(',').map(email => email.trim()).filter(email => email),
       timezone: primaryTimezone,
       allTimezones: selectedTimezones,
-      meetingUrl: meetingUrl.trim() || undefined
+      meetingUrl: meetingUrl.trim() || null
     };
 
     console.log('Creating appointment:', appointment);

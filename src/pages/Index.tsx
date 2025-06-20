@@ -6,6 +6,8 @@ import { meetingService } from '@/services/meetingService';
 import { timezoneService } from '@/services/timezoneService';
 import SupabaseAuthPage from '../components/SupabaseAuthPage';
 import Dashboard from '../components/Dashboard';
+import CalendarPage from './CalendarPage';
+import WorldClockPage from './WorldClockPage';
 import UpcomingMeetings from '../components/UpcomingMeetings';
 import EmailPage from '../components/EmailPage';
 import ExportPage from '../components/ExportPage';
@@ -195,6 +197,29 @@ const Index = () => {
             userEmail={user.email || ''} 
             appointments={appointments}
             onCreateAppointment={handleCreateAppointment}
+            selectedTimezones={selectedTimezones}
+            primaryTimezone={primaryTimezone}
+            onTimezoneChange={handleTimezoneChange}
+          />
+        } 
+      />
+      <Route 
+        path="/calendar" 
+        element={
+          <CalendarPage 
+            userEmail={user.email || ''} 
+            appointments={appointments}
+            onCreateAppointment={handleCreateAppointment}
+            selectedTimezones={selectedTimezones}
+            primaryTimezone={primaryTimezone}
+          />
+        } 
+      />
+      <Route 
+        path="/worldclock" 
+        element={
+          <WorldClockPage 
+            userEmail={user.email || ''} 
             selectedTimezones={selectedTimezones}
             primaryTimezone={primaryTimezone}
             onTimezoneChange={handleTimezoneChange}

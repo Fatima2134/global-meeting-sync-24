@@ -20,8 +20,14 @@ const FunctionalSidebar: React.FC<FunctionalSidebarProps> = ({
     {
       icon: Calendar,
       label: 'Calendar',
-      path: '/',
+      path: '/calendar',
       onClick: onCalendarClick
+    },
+    {
+      icon: Clock,
+      label: 'World Clock',
+      path: '/worldclock',
+      onClick: () => navigate('/worldclock')
     },
     {
       icon: Video,

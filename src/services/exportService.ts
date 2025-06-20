@@ -2,27 +2,30 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export const exportService = {
-  async exportTableAsCSV(tableName: string) {
+  async exportTable(tableName: string) {
     try {
       const { data, error } = await supabase.functions.invoke('export-csv', {
-        body: {},
-        // Pass table name as query parameter
+        body: {
+          table_name: tableName
+        }
       });
 
       if (error) {
-        console.error('Error exporting CSV:', error);
+        console.error('Error exporting table:', error);
         throw error;
       }
 
-      // Create download link
-      const url = `${supabase.supabaseUrl}/functions/v1/export-csv?table=${tableName}`;
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${tableName}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
+      // Create and download CSV file
+      const blob = new Blob([data.csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${tableName}_export.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
       return data;
     } catch (error) {
       console.error('Export service error:', error);

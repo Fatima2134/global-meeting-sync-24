@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Mail, Send, Users } = 'lucide-react';
+import { Mail, Send, Users } from 'lucide-react';
 import { emailService } from '@/services/emailService';
 import { useToast } from '@/hooks/use-toast';
 

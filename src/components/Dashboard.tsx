@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import FunctionalSidebar from './FunctionalSidebar';
 import Calendar from './Calendar';
@@ -26,23 +27,43 @@ const Dashboard = ({
   onTimezoneChange,
 }: DashboardProps) => {
   const { signOut } = useAuth();
+  const navigate = useNavigate();
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const handleLogout = async () => {
     await signOut();
   };
 
+  const handleNavigateToMeetings = () => {
+    navigate('/meetings');
+  };
+
+  const handleCalendarClick = () => {
+    // Already on calendar view, could scroll to calendar or do nothing
+  };
+
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date);
+    setIsAppointmentModalOpen(true);
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
-      <FunctionalSidebar />
+      <FunctionalSidebar 
+        onNavigateToMeetings={handleNavigateToMeetings}
+        onCalendarClick={handleCalendarClick}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header userEmail={userEmail} onLogout={handleLogout} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <Calendar 
+                selectedTimezones={selectedTimezones}
+                primaryTimezone={primaryTimezone}
                 appointments={appointments}
-                onCreateAppointment={() => setIsAppointmentModalOpen(true)}
+                onDateClick={handleDateClick}
               />
             </div>
             <div className="space-y-6">
@@ -56,13 +77,15 @@ const Dashboard = ({
         </main>
       </div>
       
-      <AppointmentModal
-        isOpen={isAppointmentModalOpen}
-        onClose={() => setIsAppointmentModalOpen(false)}
-        onSubmit={onCreateAppointment}
-        selectedTimezones={selectedTimezones}
-        primaryTimezone={primaryTimezone}
-      />
+      {isAppointmentModalOpen && (
+        <AppointmentModal
+          date={selectedDate}
+          primaryTimezone={primaryTimezone}
+          selectedTimezones={selectedTimezones}
+          onClose={() => setIsAppointmentModalOpen(false)}
+          onCreateAppointment={onCreateAppointment}
+        />
+      )}
     </div>
   );
 };

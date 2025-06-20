@@ -22,7 +22,11 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
   const [date, setDate] = useState(appointment.date);
   const [time, setTime] = useState(appointment.time);
   const [duration, setDuration] = useState(appointment.duration.toString());
-  const [attendees, setAttendees] = useState(appointment.attendees.join(', '));
+  const [attendees, setAttendees] = useState(
+    Array.isArray(appointment.attendees) 
+      ? appointment.attendees.map(a => typeof a === 'string' ? a : a.email).join(', ')
+      : ''
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +180,7 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({
             >
               Update Meeting
             </Button>
-          </div>
+            </div>
         </form>
       </div>
     </div>

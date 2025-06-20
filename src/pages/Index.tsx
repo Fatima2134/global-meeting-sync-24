@@ -4,7 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { meetingService } from '@/services/meetingService';
 import { timezoneService } from '@/services/timezoneService';
-import AuthPage from '../components/AuthPage';
+import SupabaseAuthPage from '../components/SupabaseAuthPage';
 import Dashboard from '../components/Dashboard';
 import UpcomingMeetings from '../components/UpcomingMeetings';
 import { useToast } from '@/hooks/use-toast';
@@ -185,7 +185,7 @@ const Index = () => {
   }
 
   if (!user) {
-    return <AuthPage />;
+    return <SupabaseAuthPage />;
   }
 
   return (

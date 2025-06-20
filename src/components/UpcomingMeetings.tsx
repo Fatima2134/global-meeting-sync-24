@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import FunctionalSidebar from './FunctionalSidebar';
 import EditAppointmentModal from './EditAppointmentModal';
@@ -24,10 +25,19 @@ const UpcomingMeetings = ({
   onDeleteAppointment,
 }: UpcomingMeetingsProps) => {
   const { signOut } = useAuth();
+  const navigate = useNavigate();
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
 
   const handleLogout = async () => {
     await signOut();
+  };
+
+  const handleNavigateToMeetings = () => {
+    // Already on meetings page
+  };
+
+  const handleCalendarClick = () => {
+    navigate('/');
   };
 
   const upcomingAppointments = appointments
@@ -45,7 +55,10 @@ const UpcomingMeetings = ({
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <FunctionalSidebar />
+      <FunctionalSidebar 
+        onNavigateToMeetings={handleNavigateToMeetings}
+        onCalendarClick={handleCalendarClick}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header userEmail={userEmail} onLogout={handleLogout} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
@@ -143,13 +156,12 @@ const UpcomingMeetings = ({
 
       {editingAppointment && (
         <EditAppointmentModal
-          isOpen={true}
+          appointment={editingAppointment}
           onClose={() => setEditingAppointment(null)}
-          onSubmit={(updatedAppointment) => {
+          onUpdateAppointment={(updatedAppointment) => {
             onUpdateAppointment(editingAppointment.id, updatedAppointment);
             setEditingAppointment(null);
           }}
-          appointment={editingAppointment}
         />
       )}
     </div>
